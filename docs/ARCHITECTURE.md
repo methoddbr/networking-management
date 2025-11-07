@@ -21,14 +21,27 @@
 
 ## Visão Geral
 
-A plataforma centraliza gestão de membros, comunicação, controle de presença, geração de negócios entre membros, acompanhamento 1:1 e módulo financeiro de mensalidades. A arquitetura proposta é **modular**, **escalável** e facilita iterações rápidas — com backend em Node.js (TypeScript), API REST (ou GraphQL opcional), frontend em Next.js (React), banco relacional (Postgres) e armazenamento de arquivos em S3-compatible.
+A plataforma tem como objetivo centralizar a **gestão de membros, comunicação interna, controle de presença, geração de negócios entre membros, acompanhamento de reuniões 1:1 e o módulo financeiro de mensalidades**.
 
-Principais princípios:
+A arquitetura proposta é **modular**, **escalável** e de fácil manutenção, permitindo evolução incremental e iterações rápidas.  
+A solução será composta por:
 
-- Contratos bem definidos (OpenAPI) para facilitar front/back independentes.
-- Controle de acessos por roles (admin, member, guest).
-- Modelagem relacional por tratar-se de domínio com muitas relações (membros, indicações, reuniões, pagamentos).
-- Testes automáticos (unit + integração) e pipeline CI simples.
+- **Backend:** Node.js + Express com TypeScript
+- **API:** REST (documentada com OpenAPI/Swagger)
+- **Frontend:** Next.js (React) com Tailwind CSS
+- **Banco de dados:** PostgreSQL (relacional)
+- **Infraestrutura local:** ambiente Docker com containers para backend e banco de dados
+- **Hospedagem:** frontend na Vercel e backend containerizado em ambiente cloud (ex.: Render, Railway ou ECS)
+
+### Princípios
+
+- **Clean Architecture e SOLID:** separação clara de camadas e responsabilidades.
+- **Contratos bem definidos:** OpenAPI para comunicação padronizada entre frontend e backend.
+- **Controle de acesso baseado em roles:** (admin, member, guest).
+- **Modelagem relacional:** adequada ao domínio com múltiplos relacionamentos (membros, reuniões, indicações, pagamentos).
+- **Testes automatizados:** unitários e de integração com Jest e Supertest.
+- **Padronização visual:** uso de Tailwind CSS para consistência e manutenibilidade no frontend.
+- **Validação de entradas:** via Zod, garantindo integridade e segurança nos endpoints.
 
 ---
 
