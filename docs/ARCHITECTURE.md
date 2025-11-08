@@ -142,3 +142,143 @@ O conjunto de tecnologias foi escolhido visando **simplicidade, escalabilidade e
 O uso de **TypeScript + Tailwind + Docker + PostgreSQL** forma uma base sólida, moderna e fácil de manter, com separação clara entre camadas e possibilidade de evolução para ambientes mais complexos futuramente.
 
 ---
+
+## Modelo de Dados (SQL)
+
+Abaixo seguem as tabelas principais com campos essenciais e relacionamentos. Campos `created_at` e `updated_at` padronizados.
+
+### Entidades principais
+
+#### `users` (membros e administradores)
+
+- `id` UUID PK
+- `email` VARCHAR UNIQUE
+- `password_hash` VARCHAR NULLABLE (se for local auth)
+- `name` VARCHAR
+- `role` ENUM('guest','member','admin')
+- `phone` VARCHAR NULLABLE
+- `company` VARCHAR NULLABLE
+- `position` VARCHAR NULLABLE
+- `status` ENUM('pending','active','rejected','inactive')
+- `joined_at` TIMESTAMP NULLABLE
+- `profile_photo` VARCHAR (url)
+- `metadata` JSONB
+- `created_at`, `updated_at`
+
+#### `intents` (formulário público de intenção de participação)
+
+- `id` UUID PK
+- `name`, `email`, `phone`, `message` TEXT
+- `source` VARCHAR (origem: site, evento)
+- `status` ENUM('new','reviewed','accepted','rejected')
+- `reviewed_by` FK -> users(id) NULLABLE
+- `created_at`, `updated_at`
+
+#### `meetings` (reuniões em grupo)
+
+- `id` UUID PK
+- `title`, `description`, `date` TIMESTAMP
+- `location` VARCHAR NULLABLE (ou virtual link)
+- `created_by` FK -> users(id)
+- `created_at`, `updated_at`
+
+#### `attendance` (check-ins)
+
+- `id` UUID PK
+- `meeting_id` FK -> meetings(id)
+- `user_id` FK -> users(id)
+- `status` ENUM('present','absent','late')
+- `checked_at` TIMESTAMP
+
+#### `one_to_one_meetings` (1:1 entre membros)
+
+- `id` UUID PK
+- `member_a_id` FK -> users(id)
+- `member_b_id` FK -> users(id)
+- `scheduled_at` TIMESTAMP
+- `status` ENUM('scheduled','done','cancelled')
+- `notes` TEXT
+
+#### `referrals` (indicações / sistema de negócios)
+
+- `id` UUID PK
+- `from_member_id` FK -> users(id)
+- `to_member_id` FK -> users(id) -- quem recebeu a indicação para atender
+- `client_name` VARCHAR
+- `description` TEXT
+- `status` ENUM('open','contacted','in_progress','won','lost')
+- `value_estimated` NUMERIC NULLABLE
+- `closed_at` TIMESTAMP NULLABLE
+- `thanks_public` BOOLEAN DEFAULT FALSE
+- `created_at`, `updated_at`
+
+#### `thanks` (agradecimentos públicos)
+
+- `id` UUID PK
+- `referral_id` FK -> referrals(id)
+- `from_member_id` FK -> users(id)
+- `message` TEXT
+- `created_at`
+
+#### `dues` (mensalidades)
+
+- `id` UUID PK
+- `member_id` FK -> users(id)
+- `period_start` DATE
+- `period_end` DATE
+- `amount` NUMERIC
+- `status` ENUM('pending','paid','overdue','cancelled')
+- `payment_ref` VARCHAR NULLABLE
+- `created_at`, `updated_at`
+
+#### `announcements` (avisos/comunicados)
+
+- `id` UUID PK
+- `title`, `content` TEXT
+- `audience` JSONB (filtros: all / groups / tags)
+- `pinned` BOOLEAN
+- `created_by` FK -> users(id)
+- `created_at`, `updated_at`
+
+#### `audit_logs` (opcional)
+
+- `id`, `actor_id`, `action`, `resource_type`, `resource_id`, `payload` JSONB, `created_at`
+
+### Índices e Relações Importantes
+
+**Relações principais:**
+
+- `users` 1:N `referrals` (enviadas e recebidas)
+- `users` N:N `meetings` via `attendance`
+- `users` 1:N `dues`
+- `referrals` 1:1 `thanks`
+- `users` 1:N `announcements`
+- `users` N:N `one_to_one_meetings`
+
+**Regras de integridade:**
+
+- `ON DELETE SET NULL` — quando é importante preservar o histórico (ex.: `referrals.from_member_id`).
+- `ON DELETE RESTRICT` — quando não se deve excluir o registro pai se houver dependências (ex.: `users` com mensalidades).
+
+**Índices de performance:**
+
+- Índice único em `users(email)` para login e autenticação.
+- Índice em `referrals(status)` para filtros e relatórios.
+- Índice composto em `attendance(meeting_id, user_id)` para presença e controle de duplicidade.
+- Índice composto em `dues(user_id, status)` para consultas de mensalidades.
+- Índice único em `thanks(referral_id)` garantindo relação 1:1 com indicações.
+
+### Diagrama Entidade-Relacionamento (Mermaid)
+
+```mermaid
+erDiagram
+    users ||--o{ intents : "reviewed_by"
+    users ||--o{ meetings : "created_by"
+    meetings ||--o{ attendance : "meeting_id"
+    users ||--o{ attendance : "user_id"
+    users ||--o{ one_to_one_meetings : "member_a_id / member_b_id"
+    users ||--o{ referrals : "from_member_id / to_member_id"
+    referrals ||--o| thanks : "referral_id"
+    users ||--o{ dues : "member_id"
+    users ||--o{ announcements : "created_by"
+```
