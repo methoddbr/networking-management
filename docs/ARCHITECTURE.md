@@ -328,3 +328,62 @@ Componentização e responsabilidades:
 - **Design system**: tokens (cores, espaçamentos) e componentes básicos.
 
 ---
+
+## Definição da API (REST — principais endpoints)
+
+Formato: JSON, autenticação via `Authorization: Bearer <token>`.
+
+### 1) Gestão de Membros
+
+**POST /api/intents** — enviar intenção pública
+
+- Request
+
+```json
+{
+  "name": "João Silva",
+  "email": "joao@example.com",
+  "phone": "+55...",
+  "message": "Quero participar"
+}
+```
+
+- Response 201
+
+```json
+{ "id": "uuid", "status": "new", "created_at": "..." }
+```
+
+**GET /api/admin/intents** — listar intenções (admin)
+
+- Query params: `status`, `page`, `limit`
+- Response 200
+
+```json
+{
+  "items": [{ "id": "...", "name": "...", "status": "new" }],
+  "meta": { "page": 1, "total": 12 }
+}
+```
+
+**POST /api/admin/intents/:id/accept** — aceita e cria registro provisório
+
+- Response 200 -> retorna `user` draft ou convite com token.
+
+**POST /api/members** — cadastro completo (após aceite)
+
+- Request
+
+```json
+{
+  "email": "joao@example.com",
+  "password": "...",
+  "name": "João Silva",
+  "company": "Empresa X",
+  "position": "CEO"
+}
+```
+
+- Response 201 -> user object (sem password)
+
+---
