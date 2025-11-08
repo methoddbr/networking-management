@@ -282,3 +282,49 @@ erDiagram
     users ||--o{ dues : "member_id"
     users ||--o{ announcements : "created_by"
 ```
+
+---
+
+## Estrutura de Componentes (Frontend — Next.js)
+
+Estrutura de pastas:
+
+```
+/src
+  /app
+  /components
+    /common
+      - Button.tsx
+      - Modal.tsx
+      - Input.tsx
+    /members
+      - MemberCard.tsx
+      - MemberForm.tsx
+      - MemberList.tsx
+    /meetings
+      - MeetingCard.tsx
+      - MeetingList.tsx
+      - CheckinButton.tsx
+    /referrals
+      - ReferralForm.tsx
+      - ReferralList.tsx
+  /hooks
+    - useAuth.ts
+    - useFetch.ts
+  /services
+    - api.ts (axios wrapper)
+  /stores (opcional)
+    - authStore.ts (zustand)
+  /styles
+  /utils
+```
+
+Componentização e responsabilidades:
+
+- **`components/common`**: UI primitives reutilizáveis.
+- **Features folders** (`members`, `meetings`, `referrals`): agrupam componentes, testes e helpers da feature.
+- **State global**: usar somente para auth/session e caches críticos.
+- **Forms**: usar `react-hook-form` + `zod` para validação e integridade.
+- **Design system**: tokens (cores, espaçamentos) e componentes básicos.
+
+---
