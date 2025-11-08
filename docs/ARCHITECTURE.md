@@ -453,3 +453,17 @@ type Referral = {
   updated_at?: string;
 };
 ```
+
+---
+
+## Autenticação e Autorização
+
+- **Fluxo:** Login via e-mail e senha, gerando:
+  - **Access token (JWT)** de curta duração.
+  - **Refresh token** armazenado em cookie `httpOnly` e `secure`, usado para renovar o access token sem expor credenciais.
+- **Roles:** `admin`, `member`, `guest`.  
+  Middlewares específicos garantem acesso apenas às rotas compatíveis com cada role.
+- **Proteções adicionais:**
+  - **CORS restrito** a domínios autorizados.
+  - **Validação de inputs** (Zod) para evitar injeções.
+  - **Senhas com hashing seguro** (`bcrypt`).
