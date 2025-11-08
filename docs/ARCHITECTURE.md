@@ -467,3 +467,13 @@ type Referral = {
   - **CORS restrito** a domínios autorizados.
   - **Validação de inputs** (Zod) para evitar injeções.
   - **Senhas com hashing seguro** (`bcrypt`).
+
+---
+
+## Testes, CI/CD e observabilidade
+
+- **Tests:** Unit (Jest), integração (Supertest). Cobertura mínima exigida nas funções críticas.
+- **CI:** GitHub Actions — steps: install, lint, test, build, deploy (manual/prod).
+- **Observability:** logs estruturados (console JSON), Sentry para erros, métricas básicas em Prometheus/Grafana se necessário.
+
+---
