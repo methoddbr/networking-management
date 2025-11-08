@@ -436,3 +436,20 @@ Formato: JSON, autenticação via `Authorization: Bearer <token>`.
 - Response 201 -> thank object
 
 ---
+
+### Exemplo de schemas (JSON Schema / TypeScript types)
+
+```ts
+type Referral = {
+  id: string;
+  from_member_id: string;
+  to_member_id: string;
+  client_name: string;
+  description?: string;
+  status: "open" | "contacted" | "in_progress" | "won" | "lost";
+  value_estimated?: number;
+  thank_id?: string;
+  created_at: string;
+  updated_at?: string;
+};
+```
