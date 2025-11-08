@@ -477,3 +477,11 @@ type Referral = {
 - **Observability:** logs estruturados (console JSON), Sentry para erros, métricas básicas em Prometheus/Grafana se necessário.
 
 ---
+
+## Considerações finais
+
+Este documento foca em clareza e pragmatismo: priorizar o MVP que demonstre domínio das áreas pedidas (arquitetura, modelagem, componentização e testes). O modelo relacional e a separação de responsabilidades permitem evolução com segurança.
+
+---
+
+_Fim do documento._
