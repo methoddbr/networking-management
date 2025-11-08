@@ -387,3 +387,22 @@ Formato: JSON, autenticação via `Authorization: Bearer <token>`.
 - Response 201 -> user object (sem password)
 
 ---
+
+### 2) Controle de Presença (Check-in)
+
+**POST /api/meetings** — criar reunião (admin)
+
+- Request: `{ "title":"...", "date":"2025-11-20T19:00:00Z" }`
+- Response 201: meeting object
+
+**POST /api/meetings/:id/checkin** — registrar presença
+
+- Auth: member
+- Request body (opcional): `{ "status": "present" }` — default: present
+- Response 200: attendance record
+
+**GET /api/meetings/:id/attendance** — lista de presenças (admin)
+
+- Response 200: array de attendances
+
+---
