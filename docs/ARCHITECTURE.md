@@ -406,3 +406,33 @@ Formato: JSON, autenticação via `Authorization: Bearer <token>`.
 - Response 200: array de attendances
 
 ---
+
+### 3) Indicações / Geração de Negócios
+
+**POST /api/referrals** — criar indicação
+
+- Request
+
+```json
+{
+  "from_member_id": "uuid",
+  "to_member_id": "uuid",
+  "client_name": "Empresa Y",
+  "description": "Prospecção X",
+  "value_estimated": 5000
+}
+```
+
+- Response 201 -> referral object
+
+**PATCH /api/referrals/:id** — atualizar status (ex: contacted -> in_progress -> won)
+
+- Request `{ "status": "in_progress" }`
+- Response 200 -> updated referral
+
+**POST /api/referrals/:id/thank** — criar agradecimento público
+
+- Request `{ "message": "Obrigado fulano!" }`
+- Response 201 -> thank object
+
+---
