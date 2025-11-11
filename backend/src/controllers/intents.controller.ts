@@ -1,83 +1,97 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { prisma } from "../lib/db";
-import { IntentStatus } from "@prisma/client";
+import {
+  createIntentSchema,
+  adminListQuerySchema,
+  acceptIntentParamsSchema,
+} from "../schemas/intents.schemas";
 
-export const createIntent = async (req: Request, res: Response) => {
+export async function createIntent(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   try {
-    const { name, email, phone, message, source } = req.body;
+    const data = createIntentSchema.parse(req.body);
 
     const intent = await prisma.intent.create({
-      data: { name, email, phone, message, source },
+      data: {
+        name: data.name,
+        email: data.email,
+        phone: data.phone || "",
+        message: data.message || "",
+        source: data.source || null,
+        status: "NEW",
+      },
     });
 
     return res.status(201).json(intent);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: "Failed to create intent" });
+  } catch (err) {
+    // Zod errors will fall here; next(err) permite middleware de erro lidar
+    next(err);
   }
-};
+}
 
-export const listIntents = async (req: Request, res: Response) => {
+export async function listIntents(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   try {
-    const { status } = req.query;
+    const q = adminListQuerySchema.parse(req.query);
+    const page = Math.max(1, q.page);
+    const limit = Math.min(100, q.limit);
+    const where: any = {};
 
-    const where =
-      status && typeof status === "string" && status in IntentStatus
-        ? { status: status as IntentStatus }
-        : {};
+    if (q.status) where.status = q.status;
 
-    const intents = await prisma.intent.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
+    const [items, total] = await Promise.all([
+      prisma.intent.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.intent.count({ where }),
+    ]);
+
+    return res.json({
+      items,
+      meta: { page, total, limit },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function acceptIntent(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const { id } = acceptIntentParamsSchema.parse(req.params);
+
+    const intent = await prisma.intent.findUnique({ where: { id } });
+    if (!intent) return res.status(404).json({ error: "Intent not found" });
+
+    await prisma.intent.update({
+      where: { id },
+      data: { status: "ACCEPTED" },
     });
 
-    return res.json(intents);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: "Failed to fetch intents" });
-  }
-};
-
-export const reviewIntent = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    if (!id) {
-      return res.status(400).json({ error: "Missing intent ID" });
-    }
-
-    if (!Object.values(IntentStatus).includes(status)) {
-      return res.status(400).json({ error: "Invalid status" });
-    }
-
-    const intent = await prisma.intent.update({
-      where: { id: String(id) },
-      data: { status },
+    const user = await prisma.user.create({
+      data: {
+        email: intent.email,
+        name: intent.name,
+        role: "MEMBER",
+        status: "PENDING",
+        joinedAt: new Date(),
+      },
     });
 
-    // se a intenção for aceita, cria o usuário
-    if (status === "ACCEPTED") {
-      const existingUser = await prisma.user.findUnique({
-        where: { email: intent.email },
-      });
-
-      if (!existingUser) {
-        await prisma.user.create({
-          data: {
-            email: intent.email,
-            name: intent.name,
-            phone: intent.phone,
-            role: "MEMBER",
-            status: "PENDING",
-          },
-        });
-      }
-    }
-
-    return res.json(intent);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: "Failed to update intent" });
+    return res.json({ intent: { ...intent, status: "accepted" }, user });
+  } catch (err) {
+    next(err);
   }
-};
+}
