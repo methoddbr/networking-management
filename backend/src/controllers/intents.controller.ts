@@ -56,6 +56,25 @@ export const reviewIntent = async (req: Request, res: Response) => {
       data: { status },
     });
 
+    // se a intenção for aceita, cria o usuário
+    if (status === "ACCEPTED") {
+      const existingUser = await prisma.user.findUnique({
+        where: { email: intent.email },
+      });
+
+      if (!existingUser) {
+        await prisma.user.create({
+          data: {
+            email: intent.email,
+            name: intent.name,
+            phone: intent.phone,
+            role: "MEMBER",
+            status: "PENDING",
+          },
+        });
+      }
+    }
+
     return res.json(intent);
   } catch (error) {
     console.error(error);
