@@ -13,6 +13,10 @@ export const updateReferralSchema = z.object({
   valueEstimated: z.number().optional(),
 });
 
+export const referralParamsSchema = z.object({
+  id: z.string().uuid(),
+});
+
 export const thankParamsSchema = z.object({
   id: z.string().uuid(),
 });

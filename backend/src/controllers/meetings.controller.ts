@@ -4,6 +4,7 @@ import {
   createMeetingSchema,
   checkinSchema,
   listMeetingsQuerySchema,
+  meetingParamsSchema,
 } from "../schemas/meetings.schemas";
 import { AppError } from "../middlewares/errorHandler";
 
@@ -66,10 +67,7 @@ export async function checkin(req: Request, res: Response, next: NextFunction) {
       return next(new AppError(401, "Unauthorized"));
     }
 
-    const { id } = req.params;
-    if (!id) {
-      return next(new AppError(400, "Missing meeting id"));
-    }
+    const { id } = meetingParamsSchema.parse(req.params);
     const body = checkinSchema.parse(req.body ?? {});
 
     const meeting = await prisma.meeting.findUnique({ where: { id } });
@@ -114,10 +112,7 @@ export async function listAttendance(
   next: NextFunction
 ) {
   try {
-    const { id } = req.params;
-    if (!id) {
-      return next(new AppError(400, "Missing meeting id"));
-    }
+    const { id } = meetingParamsSchema.parse(req.params);
 
     const meeting = await prisma.meeting.findUnique({ where: { id } });
     if (!meeting) {

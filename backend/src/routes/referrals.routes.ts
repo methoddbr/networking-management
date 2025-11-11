@@ -18,6 +18,7 @@ router.post(
 router.patch(
   "/:id",
   mockAuthMiddleware,
+  requireRole("member"),
   updateReferral
 );
 

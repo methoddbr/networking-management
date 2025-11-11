@@ -9,7 +9,7 @@ export const createIntentSchema = z.object({
 });
 
 export const adminListQuerySchema = z.object({
-  status: z.string().optional(),
+  status: z.enum(["NEW", "REVIEWED", "ACCEPTED", "REJECTED"]).optional(),
   page: z.coerce.number().optional().default(1),
   limit: z.coerce.number().optional().default(20),
 });

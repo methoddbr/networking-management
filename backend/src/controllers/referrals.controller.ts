@@ -3,6 +3,7 @@ import { prisma } from "../lib/db";
 import {
   createReferralSchema,
   updateReferralSchema,
+  referralParamsSchema,
   thankParamsSchema,
   thankBodySchema,
 } from "../schemas/referrals.schemas";
@@ -41,18 +42,25 @@ export async function updateReferral(
   next: NextFunction
 ) {
   try {
-    const { id } = req.params as { id: string };
+    const { id } = referralParamsSchema.parse(req.params);
     const body = updateReferralSchema.parse(req.body);
 
     const referral = await prisma.referral.findUnique({ where: { id } });
     if (!referral) return next(new AppError(404, "Referral not found"));
 
+    // Mapeia status lowercase do schema para uppercase do enum Prisma
+    const statusMap: Record<string, "OPEN" | "CONTACTED" | "IN_PROGRESS" | "WON" | "LOST"> = {
+      open: "OPEN",
+      contacted: "CONTACTED",
+      in_progress: "IN_PROGRESS",
+      won: "WON",
+      lost: "LOST",
+    };
+
     const updated = await prisma.referral.update({
       where: { id },
       data: {
-        status: body.status
-          .toUpperCase()
-          .replace("IN_PROGRESS", "IN_PROGRESS") as any,
+        status: statusMap[body.status],
         description: body.description ?? referral.description,
         valueEstimated:
           body.valueEstimated ?? referral.valueEstimated ?? undefined,

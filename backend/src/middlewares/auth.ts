@@ -12,23 +12,43 @@ declare global {
   }
 }
 
-// Mock: simula um usuário admin logado
+// Mock: simula um usuário logado com role configurável
+// Formato: Bearer <role>:<user-id> (ex: Bearer member:123 ou Bearer admin:456)
+// Se não especificar role, assume admin por padrão (compatibilidade)
 export function mockAuthMiddleware(
   req: Request,
   _res: Response,
   next: NextFunction
 ) {
-  // Simula um token válido — depois será JWT real
-  const token = req.headers.authorization?.replace("Bearer ", "");
-
-  if (!token) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
     return next(new AppError(401, "Missing authorization token"));
   }
 
-  // Mock: qualquer token válido vira admin
+  const token = authHeader.replace("Bearer ", "").trim();
+
+  // Formato: role:user-id (ex: member:123, admin:456)
+  const parts = token.split(":");
+  let role: "admin" | "member" | "guest" = "admin";
+  let userId = "mock-user-id";
+
+  if (parts.length === 2) {
+    const [rolePart, idPart] = parts;
+    if (["admin", "member", "guest"].includes(rolePart)) {
+      role = rolePart as "admin" | "member" | "guest";
+      userId = idPart || userId;
+    } else {
+      // Se formato inválido, assume admin (compatibilidade)
+      userId = token;
+    }
+  } else if (token) {
+    // Token simples sem formato, assume admin (compatibilidade)
+    userId = token;
+  }
+
   req.user = {
-    id: "mock-user-id",
-    role: "admin",
+    id: userId,
+    role,
   };
 
   next();

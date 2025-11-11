@@ -75,7 +75,7 @@ export async function acceptIntent(
     const intent = await prisma.intent.findUnique({ where: { id } });
     if (!intent) return res.status(404).json({ error: "Intent not found" });
 
-    await prisma.intent.update({
+    const updatedIntent = await prisma.intent.update({
       where: { id },
       data: { status: "ACCEPTED" },
     });
@@ -90,7 +90,7 @@ export async function acceptIntent(
       },
     });
 
-    return res.json({ intent: { ...intent, status: "accepted" }, user });
+    return res.json({ intent: updatedIntent, user });
   } catch (err) {
     next(err);
   }
