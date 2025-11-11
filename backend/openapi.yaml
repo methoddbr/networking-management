@@ -1,0 +1,519 @@
+openapi: 3.0.3
+info:
+  title: Networking Management API
+  version: "0.1.0"
+  description: >
+    API REST da plataforma de gestão para grupos de networking.
+    Todos os endpoints (exceto intenções públicas) exigem header `Authorization: Bearer <token>`.
+    Enquanto a autenticação real não está pronta, qualquer token não-vazio ativa o middleware mock.
+servers:
+  - url: http://localhost:4000/api
+    description: Ambiente local
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Intent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+        message:
+          type: string
+          nullable: true
+        source:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [NEW, REVIEWED, ACCEPTED, REJECTED]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Member:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+        company:
+          type: string
+          nullable: true
+        position:
+          type: string
+          nullable: true
+        joinedAt:
+          type: string
+          format: date-time
+          nullable: true
+    Meeting:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        date:
+          type: string
+          format: date-time
+        location:
+          type: string
+          nullable: true
+        createdById:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Attendance:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        meetingId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PRESENT, ABSENT, LATE]
+        checkedAt:
+          type: string
+          format: date-time
+        user:
+          $ref: "#/components/schemas/Member"
+    Referral:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        fromMemberId:
+          type: string
+          format: uuid
+        toMemberId:
+          type: string
+          format: uuid
+        clientName:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [OPEN, CONTACTED, IN_PROGRESS, WON, LOST]
+        valueEstimated:
+          type: number
+          nullable: true
+        thanksPublic:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Thank:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        referralId:
+          type: string
+          format: uuid
+        fromMemberId:
+          type: string
+          format: uuid
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+paths:
+  /intents:
+    post:
+      summary: Enviar intenção pública
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                message:
+                  type: string
+                source:
+                  type: string
+      responses:
+        "201":
+          description: Intent criada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Intent"
+  /intents/admin:
+    get:
+      summary: Listar intenções
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [NEW, REVIEWED, ACCEPTED, REJECTED]
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Lista de intenções
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Intent"
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+  /intents/admin/{id}/accept:
+    post:
+      summary: Aceitar intenção e gerar membro pendente
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Intent aceita e usuário criado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  intent:
+                    $ref: "#/components/schemas/Intent"
+                  user:
+                    $ref: "#/components/schemas/Member"
+  /members:
+    get:
+      summary: Listar membros ativos
+      responses:
+        "200":
+          description: Lista de membros
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Member"
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+    post:
+      summary: Criar membro diretamente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                company:
+                  type: string
+                position:
+                  type: string
+      responses:
+        "201":
+          description: Membro criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+  /meetings:
+    get:
+      summary: Listar reuniões
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Lista de reuniões
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Meeting"
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+    post:
+      summary: Criar reunião (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, date]
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                date:
+                  type: string
+                  format: date-time
+                location:
+                  type: string
+      responses:
+        "201":
+          description: Reunião criada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meeting"
+  /meetings/{id}/checkin:
+    post:
+      summary: Registrar presença do membro
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [present, absent, late]
+      responses:
+        "200":
+          description: Registro de presença
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attendance"
+  /meetings/{id}/attendance:
+    get:
+      summary: Listar presenças da reunião
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Lista de presenças
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Attendance"
+  /referrals:
+    post:
+      summary: Criar indicação
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [toMemberId, clientName]
+              properties:
+                toMemberId:
+                  type: string
+                  format: uuid
+                clientName:
+                  type: string
+                description:
+                  type: string
+                valueEstimated:
+                  type: number
+      responses:
+        "201":
+          description: Indicação criada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Referral"
+  /referrals/{id}:
+    patch:
+      summary: Atualizar status da indicação
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [open, contacted, in_progress, won, lost]
+                description:
+                  type: string
+                valueEstimated:
+                  type: number
+      responses:
+        "200":
+          description: Indicação atualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Referral"
+  /referrals/{id}/thank:
+    post:
+      summary: Registrar agradecimento público
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:
+                  type: string
+      responses:
+        "201":
+          description: Agradecimento criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Thank"
+
