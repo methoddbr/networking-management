@@ -1,0 +1,178 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/*
+  Models below follow camelCase for timestamps and fields:
+  - createdAt / updatedAt / checkedAt / joinedAt / closedAt / periodStart / periodEnd
+  - relation names declared explicitly when needed to avoid ambiguity
+*/
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String?
+  name         String
+  role         Role          @default(MEMBER)
+  phone        String?
+  company      String?
+  position     String?
+  status       UserStatus    @default(PENDING)
+  joinedAt     DateTime?
+  profilePhoto String?
+  metadata     Json?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Relations
+  referralsFrom Referral[]    @relation("ReferralsFrom")
+  referralsTo   Referral[]    @relation("ReferralsTo")
+  meetings      Meeting[]     @relation("CreatedMeetings") // meetings created by this user (as organiser)
+  attendance    Attendance[]                       // attendances of this user
+  dues          Due[]                               
+  announcements Announcement[]  @relation("AnnouncementsByUser")
+  thanksSent    Thank[]        @relation("ThanksFromUser")
+}
+
+model Intent {
+  id         String       @id @default(uuid())
+  name       String
+  email      String
+  phone      String
+  message    String
+  source     String?
+  status     IntentStatus @default(NEW)
+  reviewedBy String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+model Meeting {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  date        DateTime
+  location    String?
+  createdBy   User         @relation("CreatedMeetings", fields: [createdById], references: [id])
+  createdById String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Opposite side of Attendance relation
+  attendance  Attendance[]  @relation("MeetingAttendance")
+}
+
+model Attendance {
+  id         String           @id @default(uuid())
+  meetingId  String
+  userId     String
+  status     AttendanceStatus @default(PRESENT)
+  checkedAt  DateTime         @default(now())
+
+  meeting    Meeting          @relation("MeetingAttendance", fields: [meetingId], references: [id])
+  user       User             @relation(fields: [userId], references: [id])
+
+  @@unique([meetingId, userId])
+}
+
+model Referral {
+  id             String         @id @default(uuid())
+  fromMemberId   String
+  toMemberId     String
+  clientName     String
+  description    String?
+  status         ReferralStatus @default(OPEN)
+  valueEstimated Float?
+  closedAt       DateTime?
+  thanksPublic   Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  fromMember     User   @relation("ReferralsFrom", fields: [fromMemberId], references: [id])
+  toMember       User   @relation("ReferralsTo", fields: [toMemberId], references: [id])
+  thank          Thank?
+}
+
+model Thank {
+  id           String   @id @default(uuid())
+  message      String
+  referralId   String   @unique
+  fromMemberId String
+  createdAt    DateTime @default(now())
+
+  referral     Referral @relation(fields: [referralId], references: [id])
+  fromMember   User     @relation("ThanksFromUser", fields: [fromMemberId], references: [id])
+}
+
+model Due {
+  id          String    @id @default(uuid())
+  memberId    String
+  periodStart DateTime
+  periodEnd   DateTime
+  amount      Float
+  status      DueStatus @default(PENDING)
+  paymentRef  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  member      User      @relation(fields: [memberId], references: [id])
+}
+
+model Announcement {
+  id         String    @id @default(uuid())
+  title      String
+  content    String
+  audience   Json?
+  pinned     Boolean   @default(false)
+  createdBy  String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user       User      @relation("AnnouncementsByUser", fields: [createdBy], references: [id])
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+  GUEST
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  INACTIVE
+}
+
+enum IntentStatus {
+  NEW
+  REVIEWED
+  ACCEPTED
+  REJECTED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+}
+
+enum ReferralStatus {
+  OPEN
+  CONTACTED
+  IN_PROGRESS
+  WON
+  LOST
+}
+
+enum DueStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
