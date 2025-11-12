@@ -1,0 +1,1 @@
+export { IntentForm } from "./IntentForm";
