@@ -43,6 +43,8 @@ export default function AdminDashboard() {
       const response = await intentsService.list(params);
       setIntents(response.items);
 
+      console.log("intents", intents);
+
       // Calcular total de páginas
       const totalItems = response.meta.total || response.items.length;
       setTotalPages(Math.ceil(totalItems / ITEMS_PER_PAGE));
