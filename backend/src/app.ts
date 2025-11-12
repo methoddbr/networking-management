@@ -1,10 +1,12 @@
 import express, { Application } from "express";
+import cors from "cors";
 import routes from "./routes";
 import { errorHandler } from "./middlewares/errorHandler";
 
 const app: Application = express();
 
 // Middlewares
+app.use(cors()); // Permite requisições do frontend
 app.use(express.json());
 
 // Routes (centralizado)
@@ -21,4 +23,3 @@ app.use((_req, res) => {
 app.use(errorHandler);
 
 export default app;
-
