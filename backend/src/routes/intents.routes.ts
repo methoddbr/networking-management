@@ -19,4 +19,11 @@ router.post(
   acceptIntent
 );
 
+router.post(
+  "/admin/:id/reject",
+  mockAuthMiddleware,
+  requireRole("admin"),
+  acceptIntent
+);
+
 export default router;

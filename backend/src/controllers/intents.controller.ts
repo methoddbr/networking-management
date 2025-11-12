@@ -95,3 +95,35 @@ export async function acceptIntent(
     next(err);
   }
 }
+
+export async function rejectIntent(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const { id } = acceptIntentParamsSchema.parse(req.params);
+
+    const intent = await prisma.intent.findUnique({ where: { id } });
+    if (!intent) return res.status(404).json({ error: "Intent not found" });
+
+    const updatedIntent = await prisma.intent.update({
+      where: { id },
+      data: { status: "REJECTED" },
+    });
+
+    const user = await prisma.user.create({
+      data: {
+        email: intent.email,
+        name: intent.name,
+        role: "MEMBER",
+        status: "PENDING",
+        joinedAt: new Date(),
+      },
+    });
+
+    return res.json({ intent: updatedIntent, user });
+  } catch (err) {
+    next(err);
+  }
+}
